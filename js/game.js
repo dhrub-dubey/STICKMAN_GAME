@@ -95,15 +95,15 @@ class Game {
             this.gameData.stick.length += GAME_CONFIG.STICK_GROWTH_SPEED;
         } else if (this.gameData.stick.falling) {
             this.gameData.stick.angle += this.gameData.stick.fallSpeed;
-
+            
             if (this.gameData.stick.angle >= Math.PI / 2) {
                 this.gameData.stick.angle = Math.PI / 2;
                 this.gameData.stick.falling = false;
-
+                
                 const nextPlatform = this.gameData.platforms[1];
                 const stickEnd = this.gameData.stick.baseX + this.gameData.stick.length;
                 const success = stickEnd >= nextPlatform.x && stickEnd <= (nextPlatform.x + nextPlatform.width);
-
+                
                 if (!success) {
                     this.gameData.player.targetX = stickEnd;
                     this.gameState = GameState.WALKING_TO_FALL;
@@ -114,33 +114,35 @@ class Game {
                 }
             }
         } else if (this.gameState === GameState.WALKING || this.gameState === GameState.WALKING_TO_FALL) {
-            this.gameData.player.legAngle = (this.gameData.player.legAngle + this.gameData.player.legSpeed) % (2 * Math.PI);
-
+            this.gameData.player.legAngle += this.gameData.player.legSpeed;
+            
             if (this.gameData.player.targetX !== null) {
                 const dx = this.gameData.player.targetX - (this.gameData.player.x + GAME_CONFIG.PLAYER_WIDTH / 2);
                 if (Math.abs(dx) > this.gameData.player.walkSpeed) {
                     this.gameData.player.x += this.gameData.player.walkSpeed * Math.sign(dx);
                 } else {
-                    this.gameData.player.x = this.gameData.player.targetX - GAME_CONFIG.PLAYER_WIDTH / 2;
-                    this.gameData.player.targetX = null;
-
                     if (this.gameState === GameState.WALKING_TO_FALL) {
                         this.gameState = GameState.FALLING;
                         GAME_SOUNDS.SCREAM.play();
                     } else {
+                        this.gameData.player.x = this.gameData.player.targetX - GAME_CONFIG.PLAYER_WIDTH / 2;
+                        this.gameData.player.targetX = null;
+                        this.score += 1;
+                        
                         const lastPlatform = this.gameData.platforms[this.gameData.platforms.length - 1];
-                        const newPlatformX = lastPlatform.x + lastPlatform.width +
-                            Math.random() * 0.1 * lastPlatform.width +
-                            0.15 * lastPlatform.width;
-
-                        this.gameData.platforms.push({ x: newPlatformX, width: lastPlatform.width });
+                        const newPlatformX = lastPlatform.x + lastPlatform.width + 
+                            (Math.random() * 0.1 + 0.15) * this.gameData.platforms[0].width;
+                        
+                        this.gameData.platforms.push({
+                            x: newPlatformX,
+                            width: this.gameData.platforms[0].width
+                        });
 
                         this.gameData.stick.length = 0;
                         this.gameData.stick.angle = 0;
                         this.gameData.stick.falling = false;
                         this.gameData.stick.baseX = this.gameData.player.x + GAME_CONFIG.PLAYER_WIDTH / 2;
                         this.gameState = GameState.PLAYING;
-                        this.score += 1;
                         this.updateUI();
                     }
                 }
@@ -148,7 +150,7 @@ class Game {
         } else if (this.gameState === GameState.FALLING) {
             this.gameData.player.y += GAME_CONFIG.PLAYER_FALL_SPEED;
             this.gameData.player.rotation += GAME_CONFIG.PLAYER_ROTATION_SPEED;
-
+            
             if (this.gameData.player.y > this.canvas.height + 100) {
                 this.gameState = GameState.GAME_OVER;
                 this.updateUI();
@@ -165,10 +167,6 @@ class Game {
         drawPlatforms(this.ctx, this.gameData.platforms, this.gameData.player.y);
         drawStick(this.ctx, this.gameData.stick, this.gameData.player.y);
         drawPlayer(this.ctx, this.gameData.player, this.gameState);
-
-        // Debug visuals (remove later)
-        this.ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-        this.ctx.fillRect(this.gameData.player.x, this.gameData.player.y, 5, 5);
     }
 
     updateUI() {
